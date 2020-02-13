@@ -13,7 +13,7 @@ __author__ = "Michael Shobitan"
 __copyright__ = "Copyright 2020, UIF Platform Engineering"
 __credits__ = ["Michael Shobitan"]
 __license__ = "UIF"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __maintainer__ = "Michael Shobitan"
 __email__ = "michael.shobitan@yahoo.com"
 __status__ = "Development"
@@ -67,6 +67,10 @@ arguments for cluster creation
 
     args = parser.parse_args()
 
+taxDeedListFileCSV = 'Feb 2020.csv'
+totalYearsDelinquentCSV = 'totalYearsDelinquent.csv'
+filesToDelete = [taxDeedListFileCSV, totalYearsDelinquentCSV]
+
 def error_handling():
     unexpected_error = ("Unexpected error:", sys.exc_info()[0])
     error = (sys.exc_info()[1])
@@ -115,7 +119,6 @@ def get_env_creds(argument):
 endpointList = ['UIF-DRM1P', 'UIF-SOM1D']
 
 taxDeedListFileExcel = 'Feb 2020.xlsx'
-taxDeedListFileCSV = 'Feb 2020.csv'
 
 cd = os.chdir('/Users/mike/Documents/Life/Business/United Investments/Tax Deed List (Auction)')
 
@@ -145,6 +148,10 @@ addressBalanceHighest = ''
 balanceHighest = 0
 balanceHighestOO = ''
 
+addressPropertyValueHighest = ''
+propertyValueHighest = 0
+propertyValueHighestOO = ''
+
 highestValueDict = {}
 for row in data:
     address = (row[0])
@@ -165,6 +172,13 @@ for row in data:
             addressBalanceHighest = address
             balanceHighestOO = ownerOccupied
             balanceHighest = balance
+
+    if(propertyValue != ''):
+        propertyValue = float(propertyValue)
+        if(propertyValue > propertyValueHighest):
+            addressPropertyValueHighest = address
+            propertyValueHighestOO = ownerOccupied
+            propertyValueHighest = propertyValue
     else:
         # print('INFO: No value')
         pass
@@ -173,13 +187,49 @@ print('INFO: Most Years Delinquent \'' + addressYearsDelinquentHighest + '\'')
 print('INFO: Owner Occupied ' + totalYearsDelinquentHighestOO)
 print('INFO: Years ' + str(int(totalYearsDelinquentHighest)))
 
-print('\nINFO: Highest Balance \'' + addressBalanceHighest + '\'')
+print('\nINFO: Highest Tax Balance \'' + addressBalanceHighest + '\'')
 print('INFO: Owner Occupied ' + balanceHighestOO)
 balanceHighest = locale.format_string("%.2f", balanceHighest, grouping=True)
 print('INFO: Balance $' + str(balanceHighest))
 
-if(os.path.isfile(taxDeedListFileCSV)):
-    os.remove(taxDeedListFileCSV)
+print('\nINFO: Highest Property Value \'' + addressPropertyValueHighest + '\'')
+print('INFO: Owner Occupied ' + propertyValueHighestOO)
+propertyValueHighest = locale.format_string("%.2f", propertyValueHighest, grouping=True)
+print('INFO: Balance $' + str(propertyValueHighest))
+
+df = pd.read_csv(taxDeedListFileCSV)
+df = df.sort_values('Total Years Deliquent', ascending=False)
+df.to_csv(totalYearsDelinquentCSV, index=False)
+
+with open(totalYearsDelinquentCSV, 'r') as f:
+    d_reader = csv.DictReader(f)
+
+    headers = d_reader.fieldnames
+
+    data = []
+    printLineCounter = 0
+    printLineCount = 5
+    print('\nINFO: Top ' + str(printLineCount) + ' Total Years Deliquent Properties\n--------------------------------------------')
+    for line in d_reader:
+        row = []
+        for header in headers:
+            if(header == 'Total Years Deliquent'):
+                row.append(line[header])
+                if(line['Total Years Deliquent'] != ''):
+                    if(printLineCounter < 5):
+                        printLineCounter += 1
+                        print(str(printLineCounter) + ') ' + line['Address'] + ', ' + line[header] + ' years deliquent')
+                    else:
+                        break
+        
+        data.append(row)
+
+table = columnar(data, headers, no_borders=True)
+# print(table)
+
+for thisFile in filesToDelete:
+    if(os.path.isfile(thisFile)):
+        os.remove(thisFile)
 
 # fileOne = 'UIF_Main_' + fileDate + '_' + fileTime + '.csv'
 # fileTwo = 'UIF_Relationship_' + fileDate + '_' + fileTime + '.csv'

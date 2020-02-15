@@ -13,7 +13,7 @@ __author__ = "Michael Shobitan"
 __copyright__ = "Copyright 2020, UIF Platform Engineering"
 __credits__ = ["Michael Shobitan"]
 __license__ = "UIF"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __maintainer__ = "Michael Shobitan"
 __email__ = "michael.shobitan@yahoo.com"
 __status__ = "Development"
@@ -38,6 +38,8 @@ from collections import defaultdict
 locale.setlocale(locale.LC_ALL, 'en_US')
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+temp = sys.stdout
+
 fileDate = (time.strftime('%Y%m%d'))
 fileTime = (time.strftime('%H%M%S'))
 
@@ -55,6 +57,8 @@ if(__name__ == "__main__"):
 
 arguments for cluster creation
     -e|--endpoint ENDPOINT, Rancher Endpoint
+    -f|--fileName FILENAME, Tax Deed File
+    -pl|--printLineCount PRINTLINECOUNT, Number of Lines to Print
 ''')                                  
 
     requiredNamed = parser.add_argument_group('required arguments')
@@ -64,10 +68,19 @@ arguments for cluster creation
                         choices=endpoints,
                         type=str,
                         help=argparse.SUPPRESS)
+    requiredNamed.add_argument('-f',
+                        '--fileName',
+                        type=str,
+                        required=True,
+                        help=argparse.SUPPRESS)
+    parser.add_argument('-pl',
+                        '--printLineCount',
+                        type=int,
+                        help=argparse.SUPPRESS)
 
     args = parser.parse_args()
 
-taxDeedListFileCSV = 'Feb 2020.csv'
+taxDeedListFileCSV = args.fileName + '.csv'
 totalYearsDelinquentCSV = 'totalYearsDelinquent.csv'
 filesToDelete = [taxDeedListFileCSV, totalYearsDelinquentCSV]
 
@@ -118,7 +131,7 @@ def get_env_creds(argument):
 
 endpointList = ['UIF-DRM1P', 'UIF-SOM1D']
 
-taxDeedListFileExcel = 'Feb 2020.xlsx'
+taxDeedListFileExcel = args.fileName + '.xlsx'
 
 cd = os.chdir('/Users/mike/Documents/Life/Business/United Investments/Tax Deed List (Auction)')
 
@@ -138,7 +151,7 @@ with open(taxDeedListFileCSV, 'r') as f:
         data.append(row)
 
 table = columnar(data, headers, no_borders=True)
-print(table)
+# print(table)
 
 addressYearsDelinquentHighest = ''
 totalYearsDelinquentHighest = 0
@@ -183,6 +196,12 @@ for row in data:
         # print('INFO: No value')
         pass
 
+cd = os.chdir('/Users/mike/Documents/Scripts/Business/United Investments')
+sys.stdout = open('log.txt', 'w')
+cd = os.chdir('/Users/mike/Documents/Life/Business/United Investments/Tax Deed List (Auction)')
+
+print('Tax Delinquent Sale: ' + args.fileName + '\n')
+
 print('INFO: Most Years Delinquent \'' + addressYearsDelinquentHighest + '\'')
 print('INFO: Owner Occupied ' + totalYearsDelinquentHighestOO)
 print('INFO: Years ' + str(int(totalYearsDelinquentHighest)))
@@ -208,15 +227,25 @@ with open(totalYearsDelinquentCSV, 'r') as f:
 
     data = []
     printLineCounter = 0
-    printLineCount = 5
-    print('\nINFO: Top ' + str(printLineCount) + ' Total Years Deliquent Properties\n--------------------------------------------')
+    if(args.printLineCount is None):
+        printLineCount = 5
+    else:
+        printLineCount = args.printLineCount
+
+    if(printLineCount < 10):
+        print('\nINFO: Top ' + str(printLineCount) + ' Total Years Deliquent Properties\n--------------------------------------------')
+    elif(printLineCount < 100):
+        print('\nINFO: Top ' + str(printLineCount) + ' Total Years Deliquent Properties\n---------------------------------------------')
+    elif(printLineCount >= 100):
+        print('\nINFO: Top ' + str(printLineCount) + ' Total Years Deliquent Properties\n----------------------------------------------')
+
     for line in d_reader:
         row = []
         for header in headers:
             if(header == 'Total Years Deliquent'):
                 row.append(line[header])
                 if(line['Total Years Deliquent'] != ''):
-                    if(printLineCounter < 5):
+                    if(printLineCounter < printLineCount):
                         printLineCounter += 1
                         print(str(printLineCounter) + ') ' + line['Address'] + ', ' + line[header] + ' years deliquent')
                     else:
@@ -226,6 +255,10 @@ with open(totalYearsDelinquentCSV, 'r') as f:
 
 table = columnar(data, headers, no_borders=True)
 # print(table)
+
+sys.stdout.close()
+sys.stdout = temp   
+# print("back to normal")    
 
 for thisFile in filesToDelete:
     if(os.path.isfile(thisFile)):

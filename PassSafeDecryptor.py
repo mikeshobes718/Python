@@ -4,12 +4,12 @@ PassSafeDecryptor.py: This program is used for password decryption purposes.
 """
 
 __author__      = "Michael Shobitan"
-__copyright__ = "Copyright 2019, BTCS Platform Engineering"
+__copyright__ = "Copyright 2020, UNITED Platform Engineering"
 __credits__ = ["Michael Shobitan"]
-__license__ = "PFE"
+__license__ = "UG"
 __version__ = "0.1.0"
 __maintainer__ = "Michael Shobitan"
-__email__ = "michael.shobitan@pfizer.com"
+__email__ = "michael.shobitan@yahoo.com"
 __status__ = "Development"
 
 import sys
